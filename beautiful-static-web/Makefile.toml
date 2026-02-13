@@ -1,0 +1,46 @@
+[config]
+skip_core_tasks = true
+
+[env]
+CONTRACT_TARGET = "wasm32-unknown-unknown"
+BUILD_PROFILE = "release"
+# Adjust path to fdev if needed, or assume it's in PATH
+FDEV = "fdev" 
+
+[tasks.build-web-container]
+description = "Build the web container contract WASM"
+command = "cargo"
+args = ["build", "--profile", "${BUILD_PROFILE}", "--target", "${CONTRACT_TARGET}", "-p", "web-container-contract", "--target-dir", "target"]
+
+[tasks.compress-webapp]
+description = "Compress the web content into tar.xz"
+script = '''
+mkdir -p build
+# Create a reproducible tar archive of the web content (XZ compressed)
+echo "Compressing ui/public to build/web-content.tar.xz..."
+cd ui/public && tar -cJf ../../build/web-content.tar.xz *
+'''
+
+[tasks.publish-local]
+description = "Publish to local Freenet node"
+dependencies = ["build-web-container", "compress-webapp"]
+script = '''
+echo -n "0" > build/params.bin
+${FDEV} publish --code target/${CONTRACT_TARGET}/${BUILD_PROFILE}/web_container_contract.wasm --parameters build/params.bin contract --webapp-archive build/web-content.tar.xz
+'''
+
+[tasks.publish-public]
+description = "Publish to PUBLIC Freenet network"
+dependencies = ["build-web-container", "compress-webapp"]
+script = '''
+# IMPORTANT: Ensure 'freenet' (not 'freenet local') is running!
+echo -n "0" > build/params.bin
+# Use absolute path to ensure correct version if multiple installed
+/home/spider/.cargo/bin/fdev network publish --code target/${CONTRACT_TARGET}/${BUILD_PROFILE}/web_container_contract.wasm --parameters build/params.bin contract --webapp-archive build/web-content.tar.xz
+'''
+
+[tasks.clean]
+description = "Clean build artifacts"
+script = '''
+rm -rf build target
+'''

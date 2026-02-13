@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+    "contracts/web-container-contract",
+    # "delegates/web-delegate" # Uncomment when delegate is created
+]
