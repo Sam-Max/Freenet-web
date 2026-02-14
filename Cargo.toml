@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = [
+    "web-container-contract",
+    "delegates/web-delegate",
+    "signer"
+]

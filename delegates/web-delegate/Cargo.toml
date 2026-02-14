@@ -1,0 +1,15 @@
+[package]
+name = "web-delegate"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+freenet-stdlib = { version = "0.1", features = ["contract"] }
+serde = { version = "1.0", features = ["derive"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = { version = "0.8" }
+getrandom = { version = "0.2", features = ["js"] }
+serde_json = "1.0"

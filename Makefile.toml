@@ -1,0 +1,72 @@
+[config]
+skip_core_tasks = true
+default_to_workspace = false
+
+[env]
+CONTRACT_TARGET = "wasm32-unknown-unknown"
+BUILD_PROFILE = "release"
+FDEV = "fdev" 
+
+[tasks.build-web-container]
+description = "Build the web container contract WASM"
+command = "cargo"
+args = ["build", "--profile", "${BUILD_PROFILE}", "--target", "${CONTRACT_TARGET}", "-p", "web-container-contract", "--target-dir", "target"]
+
+[tasks.build-web-delegate]
+description = "Build the web delegate WASM"
+command = "cargo"
+args = ["build", "--profile", "${BUILD_PROFILE}", "--target", "${CONTRACT_TARGET}", "-p", "web-delegate", "--target-dir", "target"]
+
+[tasks.compress-webapp]
+description = "Compress the web content into tar.xz"
+script = '''
+mkdir -p build
+# Create a reproducible tar archive of the web content (XZ compressed)
+echo "Compressing public to build/web-content.tar.xz..."
+cd public && tar -cJf ../build/web-content.tar.xz *
+'''
+
+[tasks.build-signer]
+description = "Build the signer tool"
+command = "cargo"
+args = ["build", "--release", "-p", "signer"]
+
+[tasks.generate-keys]
+description = "Generate a new keypair using the signer tool"
+script = '''
+mkdir -p build
+# Use the signer tool to generate keys
+cargo run -p signer -- generate --output-private build/private_key --output-public build/public_key
+echo "Generated Ed25519 keypair in build/"
+'''
+
+[tasks.sign-webapp]
+description = "Sign the compressed webapp to generate metadata"
+dependencies = ["compress-webapp", "generate-keys"]
+script = '''
+# Sign the tarball using the private key
+# Using version 1 for now
+cargo run -p signer -- sign --private-key build/private_key --input build/web-content.tar.xz --output-metadata build/webapp.metadata --version 1
+echo "Signed webapp and generated build/webapp.metadata"
+'''
+
+[tasks.publish-public]
+description = "Publish to PUBLIC Freenet network with Security"
+dependencies = ["build-web-container", "sign-webapp"]
+script = '''
+# IMPORTANT: Ensure 'freenet' (not 'freenet local') is running!
+# We use the generated PUBLIC KEY as the parameters
+# We pass both the archive and the metadata
+fdev network publish \
+    --code target/${CONTRACT_TARGET}/${BUILD_PROFILE}/web_container_contract.wasm \
+    --parameters build/public_key \
+    contract \
+    --webapp-archive build/web-content.tar.xz \
+    --webapp-metadata build/webapp.metadata
+'''
+
+[tasks.clean]
+description = "Clean build artifacts"
+script = '''
+rm -rf build target
+'''

@@ -1,1 +1,0 @@
-{"rustc":4758242423518056681,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[857979250431893282,"build_script_build",false,11639175272682729056]],"local":[{"RerunIfChanged":{"output":"wasm32-unknown-unknown/release/build/typenum-8c6ee8d1320b3ab4/output","paths":["tests"]}}],"rustflags":["--cfg","freenet_main_contract"],"config":0,"compile_kind":0}

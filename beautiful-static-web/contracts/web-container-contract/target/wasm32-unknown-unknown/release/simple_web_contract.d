@@ -1,1 +1,0 @@
-/home/spider/Desktop/Freenet-web/beautiful-static-web/contracts/simple-web-contract/target/wasm32-unknown-unknown/release/simple_web_contract.wasm: /home/spider/Desktop/Freenet-web/beautiful-static-web/contracts/simple-web-contract/src/lib.rs
