@@ -35,9 +35,14 @@ args = ["build", "--release", "-p", "signer"]
 description = "Generate a new keypair using the signer tool"
 script = '''
 mkdir -p build
-# Use the signer tool to generate keys
-cargo run -p signer -- generate --output-private build/private_key --output-public build/public_key
-echo "Generated Ed25519 keypair in build/"
+# Only generate keys if they don't exist
+if [ ! -f build/private_key ]; then
+    echo "Generating new Ed25519 keypair..."
+    cargo run -p signer -- generate --output-private build/private_key --output-public build/public_key
+    echo "Generated Ed25519 keypair in build/"
+else
+    echo "Using existing keys in build/"
+fi
 '''
 
 [tasks.sign-webapp]
@@ -45,24 +50,25 @@ description = "Sign the compressed webapp to generate metadata"
 dependencies = ["compress-webapp", "generate-keys"]
 script = '''
 # Sign the tarball using the private key
-# Using version 1 for now
-cargo run -p signer -- sign --private-key build/private_key --input build/web-content.tar.xz --output-metadata build/webapp.metadata --version 1
+# Use VERSION env var if set, otherwise default to 1
+VERSION=${VERSION:-1}
+echo "Signing webapp with version ${VERSION}..."
+cargo run -p signer -- sign --private-key build/private_key --input build/web-content.tar.xz --output-metadata build/webapp.metadata --version ${VERSION}
 echo "Signed webapp and generated build/webapp.metadata"
 '''
 
-[tasks.publish-public]
-description = "Publish to PUBLIC Freenet network with Security"
+[tasks.deploy-local]
+description = "Deploy to LOCAL node only (for testing) with pre-flight checks"
 dependencies = ["build-web-container", "sign-webapp"]
 script = '''
-# IMPORTANT: Ensure 'freenet' (not 'freenet local') is running!
-# We use the generated PUBLIC KEY as the parameters
-# We pass both the archive and the metadata
-fdev network publish \
-    --code target/${CONTRACT_TARGET}/${BUILD_PROFILE}/web_container_contract.wasm \
-    --parameters build/public_key \
-    contract \
-    --webapp-archive build/web-content.tar.xz \
-    --webapp-metadata build/webapp.metadata
+./scripts/deploy.sh local
+'''
+
+[tasks.deploy-real]
+description = "Deploy to REAL PUBLIC Freenet network with pre-flight checks"
+dependencies = ["build-web-container", "sign-webapp"]
+script = '''
+./scripts/deploy.sh real
 '''
 
 [tasks.clean]
