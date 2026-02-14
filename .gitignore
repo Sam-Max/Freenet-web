@@ -1,1 +1,20 @@
-/.agent
+
+# Build artifacts
+target/
+build/
+**/*.rs.bk
+
+# Private keys and secrets
+*.pem
+*.key
+private_key
+public_key
+webapp.metadata
+
+# Cargo
+Cargo.lock
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
