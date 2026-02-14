@@ -20,43 +20,54 @@ This project deploys a secure, signature-gated static website on the Freenet net
 
 ## How to Deploy
 
+## How to Deploy
+
 1.  **Start your Freenet Node**:
     ```bash
-    fdev local
+    freenet local
     ```
 
-2.  **Build and Publish**:
-    This single command builds the contract, generates keys, signs your `public/` folder, and deploys everything:
+2.  **Choose your Deployment Target**:
+
+    **Option A: Local Testing (Private)**
+    Best for development. The site is only visible on your machine.
     ```bash
-    cargo make publish-public
+    cargo make deploy-local
     ```
 
-3.  **Access Your Site**:
-    The command output will show a **Contract Key** (e.g., `G85z...`).
-    Open: `http://127.0.0.1:7509/v1/contract/web/<CONTRACT_KEY>/`
+    **Option B: Public Network (Real)**
+    Propagates your contract to the Freenet network. Visible to anyone with the key.
+    ```bash
+    cargo make deploy-real
+    ```
+
+    *The deployment script will automatically check prerequisites, build your site, and print the **Contract URL** at the end.*
+
+## Updating the Site & Versioning
+
+To update your website, modify files in `public/`.
+
+**Crucial:** You should increment the version number for every update so the network (and search engines) detect the change.
+
+```bash
+VERSION=2 cargo make deploy-real
+```
+
+If you don't specify `VERSION`, it defaults to `1`.
 
 ## Security Model
 
 This project implements a "Owner-Signed" update model:
 
 1.  **Initialization**:
-    - A unique **Ed25519 Keypair** is generated.
-    - The Contract is deployed with the **Public Key** as its parameter.
-    - The initial content is signed with the **Private Key**.
+    - A unique **Ed25519 Keypair** is generated in `build/`.
+    - **WARNING**: Do not run `cargo make clean` unless you have backed up your keys! It will delete `build/` and you will lose control of your contract.
 
 2.  **The Contract (Gatekeeper)**:
     - Stores the Public Key.
     - On every update, it verifies the **Digital Signature** in the metadata against the Public Key.
-    - If the signature is valid, the update is accepted. Otherwise, it is rejected.
 
 3.  **The Delegate (Key Manager)**:
     - Runs locally on your node.
     - Safely holds the **Private Key** (never exposed to the network).
     - Signs new content when you request an update.
-
-## Updating the Site
-
-To update your website:
-1.  Modify files in `public/`.
-2.  Run `cargo make publish-public` again.
-    - This will re-sign the new content and publish the update to your contract.
