@@ -1,43 +1,62 @@
-# Beautiful Static Web on Freenet
+# Secure Static Web on Freenet
 
-This project demonstrates a static website hosted entirely on a Freenet contract.
+This project deploys a secure, signature-gated static website on the Freenet network. Unlike a simple file upload, this architecture ensures that **only the owner** (holder of the private key) can update the website content.
 
 ## Project Structure
 
-- `contracts/`: Contains the Rust source code for the smart contract that stores and serves the website.
-- `web/`: The HTML and CSS files for the website.
-- `Makefile`: Automates the build and deployment process.
+- **`web-container-contract/`**: The Rust smart contract that serves the website and verifies signatures on updates.
+- **`delegates/web-delegate/`**: A local agent that securely manages your private key and signs updates.
+- **`public/`**: Your static web assets (HTML, CSS, JS).
+- **`signer/`**: A custom CLI tool for generating keys and signed metadata.
+- **`Makefile.toml`**: The build automation script (uses `cargo-make`).
 
 ## Prerequisites
 
-- Rust and Cargo
-- `wasm32-unknown-unknown` target: `rustup target add wasm32-unknown-unknown`
-- Freenet Development Tool (`fdev`)
-- A running Freenet local node (`freenet local`)
+1.  **Rust & Cargo**: [Install Rust](https://www.rust-lang.org/tools/install)
+2.  **WASM Target**: `rustup target add wasm32-unknown-unknown`
+3.  **Freenet Dev Tool (`fdev`)**: `cargo install fdev`
+4.  **Cargo Make**: `cargo install cargo-make`
+5.  **Local Node**: A running Freenet node (`freenet local`).
 
 ## How to Deploy
 
-1. **Start Freenet Local Node**:
-   Open a terminal and run:
-   ```bash
-   RUST_LOG=freenet=debug freenet local
-   ```
+1.  **Start your Freenet Node**:
+    ```bash
+    fdev local
+    ```
 
-2. **Build and Publish**:
-   In this directory, run:
-   ```bash
-   make publish
-   ```
+2.  **Build and Publish**:
+    This single command builds the contract, generates keys, signs your `public/` folder, and deploys everything:
+    ```bash
+    cargo make publish-public
+    ```
 
-3. **View the Website**:
-   The `make publish` command will output a Contract Key (e.g., `8s7...`).
-   Open your browser to:
-   `http://127.0.0.1:7509/contract/<CONTRACT_KEY>/`
+3.  **Access Your Site**:
+    The command output will show a **Contract Key** (e.g., `G85z...`).
+    Open: `http://127.0.0.1:7509/v1/contract/web/<CONTRACT_KEY>/`
 
-## How it Works
+## Security Model
 
-- The `simple-web-contract` logic is compiled to WebAssembly.
-- The `web/` folder is compressed into a `.tar.xz` file.
-- `fdev publish` uploads the WASM (logic) and the `.tar.xz` (state) to your local node.
-- The command used is `fdev publish --code <WASM> --parameters "" contract --state <TAR>`.
-- The Freenet kernel acts as a web server, using the contract to read the archive and serve the files.
+This project implements a "Owner-Signed" update model:
+
+1.  **Initialization**:
+    - A unique **Ed25519 Keypair** is generated.
+    - The Contract is deployed with the **Public Key** as its parameter.
+    - The initial content is signed with the **Private Key**.
+
+2.  **The Contract (Gatekeeper)**:
+    - Stores the Public Key.
+    - On every update, it verifies the **Digital Signature** in the metadata against the Public Key.
+    - If the signature is valid, the update is accepted. Otherwise, it is rejected.
+
+3.  **The Delegate (Key Manager)**:
+    - Runs locally on your node.
+    - Safely holds the **Private Key** (never exposed to the network).
+    - Signs new content when you request an update.
+
+## Updating the Site
+
+To update your website:
+1.  Modify files in `public/`.
+2.  Run `cargo make publish-public` again.
+    - This will re-sign the new content and publish the update to your contract.
